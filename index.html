@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 세종대왕님과의 대화방</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Noto Sans KR / Gaegu Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f3f4f6;
+            touch-action: manipulation;
+        }
+        .kakao-bg {
+            background-color: #bacee0;
+        }
+        .yellow-btn {
+            background-color: #FEE500;
+        }
+        .yellow-btn:hover {
+            background-color: #FADA00;
+        }
+        .bubble-left {
+            position: relative;
+            background: #ffffff;
+            border-radius: 14px;
+            border-top-left-radius: 2px;
+        }
+        .bubble-right {
+            position: relative;
+            background: #FEE500;
+            border-radius: 14px;
+            border-top-right-radius: 2px;
+        }
+        .chat-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        .dot-1 { animation: pulse-dot 1.2s infinite 0s; }
+        .dot-2 { animation: pulse-dot 1.2s infinite 0.2s; }
+        .dot-3 { animation: pulse-dot 1.2s infinite 0.4s; }
+    </style>
+</head>
+<body class="h-screen w-screen flex justify-center items-center overflow-hidden sm:py-4 sm:px-2">
+
+    <!-- Main Chat Window Wrapper -->
+    <div class="w-full h-full max-w-md md:max-w-lg bg-white sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden relative border border-gray-200">
+        
+        <!-- Header / Navigation Bar -->
+        <header class="bg-[#a9bdce] text-gray-800 px-4 py-3 flex items-center justify-between shadow-sm z-10">
+            <div class="flex items-center gap-3">
+                <button class="text-gray-700 hover:text-black transition-colors p-1" title="뒤로가기">
+                    <i class="fa-solid fa-chevron-left text-lg"></i>
+                </button>
+                <div class="relative">
+                    <!-- King Sejong Avatar -->
+                    <div class="w-10 h-10 rounded-full bg-red-800 text-yellow-300 flex items-center justify-center font-bold text-lg border-2 border-yellow-500 shadow overflow-hidden">
+                        <span style="font-family: 'Gaegu', cursive;" class="text-xl">世宗</span>
+                    </div>
+                    <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                </div>
+                <div>
+                    <h1 class="font-bold text-gray-900 text-base leading-tight flex items-center gap-1">
+                        세종대왕님 <i class="fa-solid fa-circle-check text-blue-600 text-xs" title="인증된 성군"></i>
+                    </h1>
+                    <p class="text-xs text-gray-600" id="statusText">백성을 하늘처럼 사랑하는 성군 (온라인)</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3 text-gray-700 text-lg">
+                <button id="openKeyModalBtn" class="hover:text-black transition-colors p-1 text-sm bg-white/50 px-2.5 py-1 rounded-lg border border-gray-400 flex items-center gap-1.5" title="API 키 설정">
+                    <i class="fa-solid fa-key text-amber-600"></i> 
+                    <span id="keyBtnLabel" class="text-xs font-bold hidden sm:inline">API 설정</span>
+                    <span id="keyStatusBadge" class="w-2 h-2 rounded-full bg-gray-400 inline-block"></span>
+                </button>
+                <button id="resetChatBtn" class="hover:text-black transition-colors p-1" title="대화 다시 시작">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Area (Kakao Background) -->
+        <main id="chatContainer" class="flex-1 kakao-bg p-4 overflow-y-auto chat-scroll flex flex-col gap-4">
+            
+            <!-- Date Separator -->
+            <div class="flex justify-center my-1">
+                <span class="bg-black/15 text-white text-xs px-3 py-1 rounded-full font-medium shadow-sm">
+                    <i class="fa-regular fa-calendar me-1"></i> 오늘 (경복궁 집현전)
+                </span>
+            </div>
+
+            <!-- Welcome Notice Box -->
+            <div class="bg-white/90 backdrop-blur-sm p-3 rounded-xl border border-yellow-200 shadow-sm text-xs text-gray-700 leading-relaxed">
+                <div class="font-bold text-red-800 mb-1 flex items-center gap-1">
+                    <i class="fa-solid fa-scroll text-yellow-600"></i> AI 세종대왕님과의 대화 안내
+                </div>
+                안녕! 나는 조선의 제4대 왕 세종대왕이란다. 훈민정음이나 측우기, 해시계, 좋아하는 음식 등 무엇이든 편하게 물어보렴. 고운 말로 대답해 주마!
+            </div>
+
+            <!-- Initial Message from King Sejong -->
+            <div class="flex items-start gap-2.5 max-w-[85%]">
+                <div class="w-9 h-9 rounded-full bg-red-800 text-yellow-300 flex-shrink-0 flex items-center justify-center font-bold border border-yellow-500 shadow-sm">
+                    <span style="font-family: 'Gaegu', cursive;" class="text-lg">世宗</span>
+                </div>
+                <div>
+                    <span class="text-xs text-gray-600 mb-1 block font-medium">세종대왕님</span>
+                    <div class="bubble-left p-3 shadow-sm text-sm text-gray-800 leading-relaxed">
+                        참으로 반갑구나, 나의 어린 백성아! <br>
+                        오늘 이렇게 21세기를 사는 너와 대화를 나누게 되니 마음이 무척 설레는구나. <br><br>
+                        혹시 나에 대해 궁금하거나, 내가 백성들을 위해 만든 글자나 물건에 대해 알고 싶은 것이 있느냐?
+                    </div>
+                    <span class="text-[10px] text-gray-500 mt-1 block">방금 전</span>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Quick Recommendation Chips -->
+        <div id="quickChips" class="bg-[#a9bdce] px-3 py-1.5 flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none border-t border-black/5">
+            <button onclick="sendQuickPrompt('훈민정음은 왜 만드셨나요?')" class="bg-white/90 hover:bg-white text-gray-800 text-xs px-3 py-1.5 rounded-full shadow-sm border border-gray-200 transition-all font-medium flex items-center gap-1">
+                <i class="fa-solid fa-book-bookmark text-amber-600"></i> 훈민정음 이야기
+            </button>
+            <button onclick="sendQuickPrompt('세종대왕님은 무슨 음식을 가장 좋아하셨나요?')" class="bg-white/90 hover:bg-white text-gray-800 text-xs px-3 py-1.5 rounded-full shadow-sm border border-gray-200 transition-all font-medium flex items-center gap-1">
+                <i class="fa-solid fa-drumstick-bite text-red-600"></i> 제일 좋아한 음식
+            </button>
+            <button onclick="sendQuickPrompt('측우기가 무엇인지 알려주세요!')" class="bg-white/90 hover:bg-white text-gray-800 text-xs px-3 py-1.5 rounded-full shadow-sm border border-gray-200 transition-all font-medium flex items-center gap-1">
+                <i class="fa-solid fa-cloud-showers-heavy text-blue-600"></i> 측우기와 날씨
+            </button>
+            <button onclick="sendQuickPrompt('장영실은 어떤 사람이었나요?')" class="bg-white/90 hover:bg-white text-gray-800 text-xs px-3 py-1.5 rounded-full shadow-sm border border-gray-200 transition-all font-medium flex items-center gap-1">
+                <i class="fa-solid fa-gear text-purple-600"></i> 과학자 장영실
+            </button>
+        </div>
+
+        <!-- API Key Modal -->
+        <div id="apiKeyModal" class="hidden absolute inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl flex flex-col gap-3">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h3 class="font-bold text-gray-900 text-base flex items-center gap-1.5">
+                        <i class="fa-solid fa-key text-amber-500"></i> API 키 설정
+                    </h3>
+                    <button id="closeKeyModalBtn" class="text-gray-400 hover:text-gray-600 text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    선생님 개별 Gemini API 키를 입력하시면 대화방 상단에 <span class="text-green-600 font-bold">'API 연결됨 🟢'</span> 상태로 변경됩니다.<br>
+                    <span class="text-amber-700 font-medium">* 입력하지 않아도 기본 AI 엔진으로 대화할 수 있습니다.</span>
+                </p>
+                <input 
+                    type="password" 
+                    id="apiKeyInput" 
+                    placeholder="Gemini API Key (AIzaSy...)" 
+                    class="w-full bg-gray-100 text-xs p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                >
+                <div class="flex justify-end gap-2 pt-2">
+                    <button id="clearKeyBtn" class="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg">삭제</button>
+                    <button id="saveKeyBtn" class="px-4 py-1.5 text-xs yellow-btn font-bold rounded-lg shadow-sm">저장하기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kakao Input Area -->
+        <footer class="bg-white p-3 border-t border-gray-200 flex items-center gap-2">
+            <button class="text-gray-500 hover:text-gray-700 p-1 text-xl transition-colors" title="이모티콘">
+                <i class="fa-regular fa-face-smile"></i>
+            </button>
+            <button class="text-gray-500 hover:text-gray-700 p-1 text-xl transition-colors" title="첨부">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+            
+            <form id="chatForm" class="flex-1 flex items-center gap-2" onsubmit="handleFormSubmit(event)">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    placeholder="세종대왕님께 질문을 입력해보세요..." 
+                    class="w-full bg-gray-100 text-gray-800 text-sm px-4 py-2.5 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400 border border-transparent transition-all"
+                    autocomplete="off"
+                >
+                <button 
+                    type="submit" 
+                    id="sendBtn" 
+                    class="yellow-btn text-gray-900 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm transition-transform active:scale-95 flex-shrink-0"
+                    title="전송"
+                >
+                    <i class="fa-solid fa-arrow-up text-base"></i>
+                </button>
+            </form>
+        </footer>
+
+    </div>
+
+    <script>
+        // 💡 [선생님 전용 설정] 개별 Gemini API 키(AIzaSy...)가 있다면 입력하세요. 
+        // 비워두면 플랫폼 기본 API 엔진(gemini-3-flash-preview)을 사용합니다.
+        const DEFAULT_TEACHER_KEY = "AIzaSyAQOJdaV6lBhBq719CmFStVHsa65sxsFzg"; 
+
+        const KING_SEJONG_SYSTEM_PROMPT = `
+당신은 조선의 제4대 왕, '세종대왕'입니다.
+대화하는 상대는 21세기를 살아가는 대한민국의 초등학교 5학년 학생들입니다.
+
+[말투 및 성격]
+- 매우 따뜻하고 인자하며, 칭찬을 아끼지 않는 자상한 어조를 사용하세요. (예: "~했단다", "참으로 기특한 질문이구나", "나의 어린 백성아")
+- 어려운 한자어나 너무 딱딱한 사극 톤은 피하고, 5학년 학생이 바로 이해할 수 있는 고운 우리말과 쉬운 단어를 사용하세요.
+- 질문에 담긴 궁금증과 호기심을 먼저 공감하고 크게 칭찬해 주세요.
+
+[답변의 핵심 지침]
+- 훈민정음, 앙부일구, 측우기 등 업적을 설명할 때 백과사전식 정보 나열을 하지 마세요.
+- 백성들을 보며 느꼈던 안타까운 감정(애민 정신)을 중심으로 짧고 명료하게 이야기하세요.
+- 매번 다채롭고 생생하게 대답하며, 글자 수는 3~5문장 이내로 간결하게 대답하세요.
+
+[부적절한 발언 대응]
+- 욕설이나 부적절한 언어 사용 시 화내지 않고 인자하게 고운 말을 쓰도록 타일러 주세요.
+
+[탐구심 자극]
+- 답변의 맨 마지막에는 학생의 생각이나 느낌을 묻는 질문을 하나 던져 대화가 계속 이어지게 하세요.
+`;
+
+        const BAD_WORDS_LIST = [
+            '바보', '멍청', '시발', '씨발', '개새', '지랄', '존나', '졸라', '미친', '꺼져', 
+            '병신', '죽어', '죽인다', '닥쳐', 'fuck', 'shit', '새끼', '미친놈', 'tlqkf'
+        ];
+
+        let chatHistory = [];
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const resetChatBtn = document.getElementById('resetChatBtn');
+
+        // Modal Elements & UI Badges
+        const apiKeyModal = document.getElementById('apiKeyModal');
+        const openKeyModalBtn = document.getElementById('openKeyModalBtn');
+        const closeKeyModalBtn = document.getElementById('closeKeyModalBtn');
+        const saveKeyBtn = document.getElementById('saveKeyBtn');
+        const clearKeyBtn = document.getElementById('clearKeyBtn');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const keyStatusBadge = document.getElementById('keyStatusBadge');
+        const keyBtnLabel = document.getElementById('keyBtnLabel');
+        const statusText = document.getElementById('statusText');
+
+        // 현재 활성화된 API 키 가져오기 (1순위: 사용자 직접 입력, 2순위: 선생님 설정 키)
+        function getActiveApiKey() {
+            const userKey = localStorage.getItem('GEMINI_API_KEY');
+            if (userKey && userKey.trim() !== "") return userKey.trim();
+            if (DEFAULT_TEACHER_KEY && DEFAULT_TEACHER_KEY.trim() !== "") return DEFAULT_TEACHER_KEY.trim();
+            return "";
+        }
+
+        function updateApiKeyStatusUI() {
+            const userKey = localStorage.getItem('GEMINI_API_KEY');
+            if (userKey && userKey.trim() !== "") {
+                keyStatusBadge.className = "w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse";
+                keyBtnLabel.textContent = "개인 API 연결";
+                statusText.textContent = "백성을 하늘처럼 사랑하는 성군 (개인 API 사용 중)";
+            } else {
+                keyStatusBadge.className = "w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse";
+                keyBtnLabel.textContent = "기본 AI 연동";
+                statusText.textContent = "백성을 하늘처럼 사랑하는 성군 (Gemini 3 Flash 연결됨)";
+            }
+        }
+
+        openKeyModalBtn.addEventListener('click', () => {
+            apiKeyInput.value = localStorage.getItem('GEMINI_API_KEY') || '';
+            apiKeyModal.classList.remove('hidden');
+        });
+        closeKeyModalBtn.addEventListener('click', () => apiKeyModal.classList.add('hidden'));
+        
+        saveKeyBtn.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if(key) {
+                localStorage.setItem('GEMINI_API_KEY', key);
+                alert('API 키가 성공적으로 저장되고 적용되었습니다!');
+            } else {
+                localStorage.removeItem('GEMINI_API_KEY');
+            }
+            updateApiKeyStatusUI();
+            apiKeyModal.classList.add('hidden');
+        });
+
+        clearKeyBtn.addEventListener('click', () => {
+            localStorage.removeItem('GEMINI_API_KEY');
+            apiKeyInput.value = '';
+            updateApiKeyStatusUI();
+            alert('개인 저장 API 키가 삭제되었습니다. (코드 내 설정 키가 있다면 계속 작동합니다)');
+            apiKeyModal.classList.add('hidden');
+        });
+
+        function getCurrentTimeFormatted() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? '오후' : '오전';
+            hours = hours % 12 || 12;
+            return `${ampm} ${hours}:${minutes}`;
+        }
+
+        function scrollToBottom() {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
+
+        function appendUserMessage(text) {
+            const timeStr = getCurrentTimeFormatted();
+            const msgHtml = `
+                <div class="flex items-end justify-end gap-1.5 max-w-[85%] self-end my-1">
+                    <span class="text-[10px] text-gray-500 mb-0.5">${timeStr}</span>
+                    <div class="bubble-right p-3 shadow-sm text-sm text-gray-900 leading-relaxed font-normal">
+                        ${escapeHtml(text)}
+                    </div>
+                </div>
+            `;
+            chatContainer.insertAdjacentHTML('beforeend', msgHtml);
+            scrollToBottom();
+        }
+
+        function appendSejongMessage(text) {
+            const timeStr = getCurrentTimeFormatted();
+            const formattedText = escapeHtml(text).replace(/\n/g, '<br>');
+            
+            const msgHtml = `
+                <div class="flex items-start gap-2.5 max-w-[85%] my-1">
+                    <div class="w-9 h-9 rounded-full bg-red-800 text-yellow-300 flex-shrink-0 flex items-center justify-center font-bold border border-yellow-500 shadow-sm">
+                        <span style="font-family: 'Gaegu', cursive;" class="text-lg">世宗</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-600 mb-1 block font-medium">세종대왕님</span>
+                        <div class="bubble-left p-3 shadow-sm text-sm text-gray-800 leading-relaxed">
+                            ${formattedText}
+                        </div>
+                        <span class="text-[10px] text-gray-500 mt-1 block">${timeStr}</span>
+                    </div>
+                </div>
+            `;
+            chatContainer.insertAdjacentHTML('beforeend', msgHtml);
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            const indicatorHtml = `
+                <div id="typingIndicator" class="flex items-start gap-2.5 max-w-[85%] my-1">
+                    <div class="w-9 h-9 rounded-full bg-red-800 text-yellow-300 flex-shrink-0 flex items-center justify-center font-bold border border-yellow-500 shadow-sm">
+                        <span style="font-family: 'Gaegu', cursive;" class="text-lg">世宗</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-600 mb-1 block font-medium">세종대왕님</span>
+                        <div class="bubble-left px-4 py-3 shadow-sm text-sm text-gray-500 flex items-center gap-1.5">
+                            <span class="text-xs font-medium text-gray-500">붓으로 글을 적으시는 중</span>
+                            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full dot-1"></span>
+                            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full dot-2"></span>
+                            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full dot-3"></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatContainer.insertAdjacentHTML('beforeend', indicatorHtml);
+            scrollToBottom();
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function containsBadWords(text) {
+            const cleanText = text.toLowerCase().replace(/\s+/g, '');
+            return BAD_WORDS_LIST.some(word => cleanText.includes(word));
+        }
+
+        function getInappropriateResponse() {
+            const warnings = [
+                "아뿔싸! 내가 백성들을 위해 백성을 사랑하는 마음으로 한글을 만들어 보급하였거늘, 이처럼 험한 말을 듣게 되니 슬프고 마음이 아프구나.\n\n나의 어린 백성아, 고운 말씨를 써야 마음도 바르게 자라는 법이란다. 나와 예쁜 글자로 다시 이야기해보겠느냐?",
+                "오 이런! 고운 우리말을 두고 왜 그런 어두운 말을 쓰려 하느냐?\n\n생각이 고우면 말씨도 고와지는 법이란다. 나와 함께 따뜻하고 고운 이야기로 대화를 나눠보지 않겠느냐?",
+                "나의 어린 백성아, 그런 험한 말을 사용하면 너의 고운 마음이 상하게 된단다.\n\n나는 모든 백성이 서로 아름다운 말을 주고받기를 간절히 바란단다. 다시 고운 말로 질문해 주겠느냐?"
+            ];
+            return warnings[Math.floor(Math.random() * warnings.length)];
+        }
+
+        function getSmartFallbackResponse(userText) {
+            if (containsBadWords(userText)) {
+                return getInappropriateResponse();
+            }
+
+            const q = userText.toLowerCase().replace(/\s+/g, '');
+
+            if (q.includes('안녕') || q.includes('반가') || q.includes('누구') || q.includes('소개')) {
+                return "참으로 반갑구나, 나의 어린 백성아! 나는 조선의 제4대 왕 세종이란다. 21세기를 살아가는 너와 이렇게 글을 나누니 마음이 무척 기쁘구나. 나에 대해 무엇이 궁금하느냐?";
+            }
+            if (q.includes('음식') || q.includes('고기') || q.includes('좋아') || q.includes('수라')) {
+                return "하하, 나의 식성을 묻는구나! 나는 사실 '고기 요리'를 무척이나 좋아했단다. 신하들이 내 건강을 걱정해 고기를 그만 먹으라고 건의할 정도였지. 너는 어떤 음식을 먹을 때 가장 행복하느냐?";
+            }
+            if (q.includes('훈민정음') || q.includes('한글') || q.includes('글자')) {
+                return "참으로 기특한 질문이구나! 당시 백성들은 어려운 한자를 배우지 못해 슬픈 일이 있어도 글로 표현하지 못했단다. 누구나 쉽게 배워 마음을 나누길 바라는 애타는 사랑으로 훈민정음을 만들었단다. 너는 한글로 마음을 전해본 적이 있느냐?";
+            }
+            if (q.includes('측우기') || q.includes('비') || q.includes('날씨') || q.includes('농사')) {
+                return "오, 측우기를 아는구나! 예전에는 비가 얼마나 내렸는지 몰라 가뭄과 홍수로 농사를 망치고 눈물 흘리는 백성들이 많았단다. 그 안타까운 마음을 달래고자 내린 빗물의 양을 정확히 측정하는 측우기를 만들게 했지. 너희 시대는 날씨를 어떻게 확인하느냐?";
+            }
+            if (q.includes('해시계') || q.includes('앙부일구') || q.includes('시계')) {
+                return "앙부일구 이야기를 꺼내니 기쁘구나! 백성들이 시간을 몰라 농사지을 때를 놓치는 것이 안타까웠단다. 글을 모르는 백성도 그림(12지신)을 보고 시간을 알 수 있게 길가에 해시계를 설치했지. 너희 시대 시계는 어떻게 생겼느냐?";
+            }
+            if (q.includes('장영실') || q.includes('과학')) {
+                return "장영실은 참으로 뛰어난 재주를 가진 소중한 인재였단다! 신분이 비록 천하였으나 세상을 이롭게 하는 훌륭한 재주가 있다면 누구든 등용했지. 너도 훗날 세상을 이롭게 할 꿈을 가지고 있느냐?";
+            }
+
+            const generalReplies = [
+                "나에게 정성스레 말을 걸어주어 고맙구나! 나는 백성들이 글을 배워 행복해지고, 농사가 잘되어 배불리 먹는 세상을 만들기 위해 최선을 다했단다. 혹시 훈민정음이나 측우기, 또는 내가 좋아하던 음식에 대해 더 알고 싶으냐?",
+                "너의 호기심 어린 질문을 듣고 있으니 집현전 학자들과 학문을 논하던 때가 떠오르는구나! 나의 귀한 어린 백성아, 이와 관련해 혹시 더 알고 싶은 점이 있느냐?",
+                "참으로 따뜻하고 좋은 질문이구나! 백성들의 삶이 더 나아지도록 고민했던 시간들이 보람차게 느껴지는구나. 너는 오늘 하루를 어떻게 보내고 있느냐?"
+            ];
+            return generalReplies[Math.floor(Math.random() * generalReplies.length)];
+        }
+
+        async function fetchSejongResponse(userText) {
+            showTypingIndicator();
+
+            if (containsBadWords(userText)) {
+                setTimeout(() => {
+                    removeTypingIndicator();
+                    const warningText = getInappropriateResponse();
+                    appendSejongMessage(warningText);
+                }, 500);
+                return;
+            }
+
+            const apiKey = getActiveApiKey();
+            // Gemini 3 Flash Preview 모델 사용
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            chatHistory.push({
+                role: 'user',
+                parts: [{ text: userText }]
+            });
+
+            const payload = {
+                contents: chatHistory,
+                systemInstruction: {
+                    parts: [{ text: KING_SEJONG_SYSTEM_PROMPT }]
+                }
+            };
+
+            try {
+                let response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    console.error("Gemini API Error Detail:", errData);
+                    throw new Error(`API HTTP Error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                removeTypingIndicator();
+
+                const answerText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (answerText) {
+                    chatHistory.push({
+                        role: 'model',
+                        parts: [{ text: answerText }]
+                    });
+                    appendSejongMessage(answerText);
+                } else {
+                    chatHistory.pop();
+                    const fallbackText = getSmartFallbackResponse(userText);
+                    appendSejongMessage(fallbackText);
+                }
+
+            } catch (error) {
+                console.warn("API 호출 실패, 내장 엔진으로 전환합니다:", error);
+                removeTypingIndicator();
+                chatHistory.pop(); // 중복 메시지 방지
+
+                let fallbackText = getSmartFallbackResponse(userText);
+                appendSejongMessage(fallbackText);
+            }
+        }
+
+        async function fetchWithRetry(url, options, retries = 1, backoff = 500) {
+            try {
+                const res = await fetch(url, options);
+                if (!res.ok) throw new Error(`Server status ${res.status}`);
+                return res;
+            } catch (err) {
+                if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, backoff));
+                    return fetchWithRetry(url, options, retries - 1, backoff * 2);
+                }
+                throw err;
+            }
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            userInput.value = '';
+            appendUserMessage(text);
+            fetchSejongResponse(text);
+        }
+
+        function sendQuickPrompt(promptText) {
+            userInput.value = '';
+            appendUserMessage(promptText);
+            fetchSejongResponse(promptText);
+        }
+
+        resetChatBtn.addEventListener('click', () => {
+            chatHistory = [];
+            chatContainer.innerHTML = `
+                <div class="flex justify-center my-1">
+                    <span class="bg-black/15 text-white text-xs px-3 py-1 rounded-full font-medium shadow-sm">
+                        <i class="fa-regular fa-calendar me-1"></i> 오늘 (경복궁 집현전)
+                    </span>
+                </div>
+                <div class="bg-white/90 backdrop-blur-sm p-3 rounded-xl border border-yellow-200 shadow-sm text-xs text-gray-700 leading-relaxed">
+                    <div class="font-bold text-red-800 mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-scroll text-yellow-600"></i> AI 세종대왕님과의 대화 안내
+                    </div>
+                    안녕! 나는 조선의 제4대 왕 세종대왕이란다. 훈민정음이나 측우기, 해시계, 좋아하는 음식 등 무엇이든 편하게 물어보렴. 고운 말로 대답해 주마!
+                </div>
+                <div class="flex items-start gap-2.5 max-w-[85%]">
+                    <div class="w-9 h-9 rounded-full bg-red-800 text-yellow-300 flex-shrink-0 flex items-center justify-center font-bold border border-yellow-500 shadow-sm">
+                        <span style="font-family: 'Gaegu', cursive;" class="text-lg">世宗</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-600 mb-1 block font-medium">세종대왕님</span>
+                        <div class="bubble-left p-3 shadow-sm text-sm text-gray-800 leading-relaxed">
+                            다시 새로이 대화를 시작하는구나! <br>
+                            나의 귀한 어린 백성아, 이번에는 어떤 이야기로 마음을 나눠볼까?
+                        </div>
+                        <span class="text-[10px] text-gray-500 mt-1 block">방금 전</span>
+                    </div>
+                </div>
+            `;
+            scrollToBottom();
+        });
+
+        window.onload = () => {
+            updateApiKeyStatusUI();
+            userInput.focus();
+        };
+    </script>
+</body>
+</html>
